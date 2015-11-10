@@ -107,7 +107,7 @@ static inline YMAsyncQueueBOOLBlock __nonnull YMAsyncQueueCreateOnceBlock(void(^
 
 - (BOOL)run:(YMAsyncQueueBlock)block name:(NSString *)name {
   //  Check if maxLength exceeded
-  if (self.maxLength > 0 && self.queue.count > self.maxLength) { return NO; }
+  if (self.maxLength > 0 && self.queue.count >= self.maxLength) { return NO; }
 
   //  Use pointer address as block name if name is nil
   if (name == nil) { name = [NSString stringWithFormat:@"%p", block]; }

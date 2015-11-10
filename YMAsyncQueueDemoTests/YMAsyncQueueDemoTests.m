@@ -25,16 +25,16 @@ beforeEach(^{
 
 describe(@"basic usage", ^{
   it(@"should work", ^{
-    
+
     __block NSInteger value = 0;
-    
+
     [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
       dispatch_main_after(1, ^{
         value = 1;
         releaseBlock();
       });
     } name:@"BLOCK_1"];
-    
+
     [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
       XCTAssertEqual(value, 1);
       dispatch_main_after(1, ^{
@@ -42,7 +42,7 @@ describe(@"basic usage", ^{
         releaseBlock();
       });
     } name:@"BLOCK_2"];
-    
+
     waitUntil(^(DoneCallback done) {
       [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
         XCTAssertEqual(value, 2);
@@ -52,7 +52,67 @@ describe(@"basic usage", ^{
         });
       } name:@"BLOCK_FINAL"];
     });
-    
+
+  });
+});
+
+describe(@"with maxlength", ^{
+  it(@"should not queue after exceed", ^{
+    _queue.maxLength = 1;
+
+    BOOL success = [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
+      dispatch_main_after(1, releaseBlock);
+    } name:@"BLOCK_1"];
+
+    XCTAssertEqual(success, YES);
+
+    BOOL success2= [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
+      dispatch_main_after(1, releaseBlock);
+    } name:@"BLOCK_2"];
+
+    XCTAssertEqual(success2,NO);
+  });
+});
+
+describe(@"with timeout", ^{
+  it(@"should bypass on timeout", ^{
+    _queue.timeout = 2;
+
+    __block NSInteger value = 0;
+
+    [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
+      dispatch_main_after(1, ^{
+        value = 1;
+      });
+    } name:@"BLOCK_1"];
+
+    [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
+      dispatch_main_after(1, ^{
+        value = 2;
+        releaseBlock();
+      });
+    }];
+
+    dispatch_main_after(1.5, ^{
+      XCTAssert(value == 1);
+    });
+
+    dispatch_main_after(2.5, ^{
+      XCTAssert(value == 1);
+    });
+
+    dispatch_main_after(3.5, ^{
+      XCTAssert(value == 2);
+    });
+
+    waitUntil(^(DoneCallback done) {
+      [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
+        dispatch_main_after(1, ^{
+          done();
+          releaseBlock();
+        });
+      }];
+    });
   });
 });
 
