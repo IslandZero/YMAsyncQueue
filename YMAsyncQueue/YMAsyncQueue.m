@@ -7,7 +7,6 @@
 //
 
 #import "YMAsyncQueue.h"
-#import <UIKit/UIKit.h>
 
 #pragma mark - YMAsyncQueue Utils
 
@@ -162,7 +161,7 @@ static inline YMAsyncQueueBOOLBlock __nonnull YMAsyncQueueCreateOnceBlock(void(^
   NSTimeInterval timeout = self.timeout;
 
   //  Prepare the releaseBlock
-  __weak typeof(self) _weak_self;
+  __weak typeof(self) _weak_self = self;
   YMAsyncQueueReleaseBlock releaseBlock = ^{
     dispatch_main_async_safe(^{
       __strong YMAsyncQueue* self = _weak_self;

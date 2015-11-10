@@ -7,33 +7,53 @@
 //
 
 #import <XCTest/XCTest.h>
+#import <Specta/Specta.h>
 
-@interface YMAsyncQueueDemoTests : XCTestCase
+#import "YMAsyncQueue.h"
 
-@end
-
-@implementation YMAsyncQueueDemoTests
-
-- (void)setUp {
-    [super setUp];
-    // Put setup code here. This method is called before the invocation of each test method in the class.
+static inline void dispatch_main_after(NSTimeInterval delay, void(^ __nonnull block)()) {
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), block);
 }
 
-- (void)tearDown {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
-    [super tearDown];
-}
+SpecBegin(YMAsyncQueue)
 
-- (void)testExample {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct results.
-}
+__block YMAsyncQueue* _queue;
 
-- (void)testPerformanceExample {
-    // This is an example of a performance test case.
-    [self measureBlock:^{
-        // Put the code you want to measure the time of here.
-    }];
-}
+beforeEach(^{
+  _queue = [YMAsyncQueue new];
+});
 
-@end
+describe(@"basic usage", ^{
+  it(@"should work", ^{
+    
+    __block NSInteger value = 0;
+    
+    [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
+      dispatch_main_after(1, ^{
+        value = 1;
+        releaseBlock();
+      });
+    } name:@"BLOCK_1"];
+    
+    [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
+      XCTAssertEqual(value, 1);
+      dispatch_main_after(1, ^{
+        value = 2;
+        releaseBlock();
+      });
+    } name:@"BLOCK_2"];
+    
+    waitUntil(^(DoneCallback done) {
+      [_queue run:^(YMAsyncQueueReleaseBlock  _Nonnull releaseBlock) {
+        XCTAssertEqual(value, 2);
+        dispatch_main_after(1, ^{
+          releaseBlock();
+          done();
+        });
+      } name:@"BLOCK_FINAL"];
+    });
+    
+  });
+});
+
+SpecEnd
